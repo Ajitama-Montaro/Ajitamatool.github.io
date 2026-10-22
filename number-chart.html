@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1〜100 チェック表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700&family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
+<style>
+/* Layout: tool bar on top, the chart (a mint tile board with a green header band, fixed in both themes) in the middle, PNG output below */
+:root {
+  --bg: #eef3f1;
+  --panel: #ffffff;
+  --fg: #1c2b26;
+  --muted: #5a6e66;
+  --line: #cfdcd6;
+  --accent: #237a5f;
+  --board: #bfe9d4;      /* chart colors, fixed in both themes */
+  --band: #1f5c4a;
+  --tile: #ffffff;
+  --ink: #23332d;
+  --f-num: "Rubik", "Arial Rounded MT Bold", "Helvetica Neue", sans-serif;
+  --f-ui: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121a17; --panel: #1a2420; --fg: #e2eee9; --muted: #92a89f; --line: #2c3c35; --accent: #5cc9a2; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #121a17; --panel: #1a2420; --fg: #e2eee9; --muted: #92a89f; --line: #2c3c35; --accent: #5cc9a2; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--f-ui); font-size: 14px; }
+[hidden] { display: none !important; }
+.wrap {
+  max-width: 820px; margin: 0 auto;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 16px;
+}
+.bar {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px; display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: end;
+}
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label, .field .lbl { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+input[type=text], input[type=number] {
+  font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--fg); width: 100%;
+}
+#nameInput { width: 150px; }
+#numInput { width: 90px; font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+#titleInput { width: 200px; }
+.swatches { display: flex; gap: 6px; }
+.sw { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.sw[aria-pressed="true"] { border-color: var(--fg); box-shadow: 0 0 0 2px var(--panel) inset; }
+button.btn {
+  font: inherit; font-size: 14px; font-weight: 800; padding: 9px 14px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer;
+}
+button.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:focus-visible, input:focus-visible, .cell:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.6; }
+
+.sheet { background: var(--board); border-radius: 18px; overflow: hidden; }
+.sheet h1 {
+  margin: 0; padding: 12px 16px; text-align: center; background: var(--band); color: #fff;
+  font-family: var(--f-ui); font-weight: 800; letter-spacing: .06em;
+  font-size: clamp(18px, 4vw, 28px); text-wrap: balance;
+}
+.grid {
+  display: grid; grid-template-columns: repeat(10, 1fr);
+  gap: clamp(3px, .9vw, 7px); padding: clamp(8px, 2vw, 16px);
+}
+.cell {
+  position: relative; aspect-ratio: 1 / 1.12; border: 0; border-radius: clamp(5px, 1.2vw, 10px);
+  display: grid; grid-template-rows: 1fr auto; justify-items: center; align-items: center;
+  cursor: pointer; user-select: none; min-width: 0;
+  font-family: var(--f-num); font-weight: 500; font-size: clamp(12px, 3vw, 26px); color: var(--ink);
+  font-variant-numeric: tabular-nums; background: var(--tile); padding: 6% 2px 4%;
+  box-shadow: 0 2px 0 rgba(31, 92, 74, .18);
+}
+.cell .n { position: relative; display: grid; place-items: center; width: 2.1em; height: 1.5em; }
+.cell:hover { filter: brightness(.97); }
+.cell.on { background: color-mix(in srgb, var(--c) 16%, #fff); }
+.cell .ring {
+  position: absolute; inset: -4% 0; border: 3px solid var(--c); border-radius: 50%;
+  pointer-events: none;
+}
+.cell .nm {
+  width: 88%; min-width: 0; text-align: center; padding-top: 3px;
+  border-top: 1px dashed rgba(31, 92, 74, .28);
+  font-family: var(--f-ui); font-weight: 800; color: var(--c);
+  font-size: clamp(9px, 1.9vw, 15px); line-height: 1.35; height: 1.7em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cell.just { animation: pop .25s ease-out; }
+@keyframes pop { from { transform: scale(.85); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .cell.just { animation: none; } }
+
+.stats { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--muted); }
+.stats b { color: var(--fg); font-family: var(--f-num); font-size: 18px; font-variant-numeric: tabular-nums; }
+.out { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; }
+.out img { width: 100%; border-radius: 6px; border: 1px solid var(--line); }
+.confirm { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; }
+.toast { font-size: 13px; color: var(--accent); min-height: 1em; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="bar">
+    <div class="field">
+      <label for="numInput">出た数字</label>
+      <input id="numInput" type="number" min="1" max="100" inputmode="numeric" placeholder="38">
+    </div>
+    <div class="field">
+      <label for="nameInput">書き込む名前（空でもOK）</label>
+      <input id="nameInput" type="text" maxlength="12" placeholder="例：うにと">
+    </div>
+    <div class="field">
+      <span class="lbl">ペンの色</span>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="field">
+      <label for="titleInput">表のタイトル</label>
+      <input id="titleInput" type="text" maxlength="30" value="1〜100 チェック表">
+    </div>
+    <p class="hint" style="flex-basis:100%">数字を入れて Enter か、表のマスをタップで印。印のあるマスをもう一度タップすると消えます。</p>
+  </div>
+
+  <div class="sheet">
+    <h1 id="sheetTitle">1〜100 チェック表</h1>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="stats">
+    <span>埋まった数 <b id="countDone">0</b> / 100</span>
+    <span>残り <b id="countLeft">100</b></span>
+  </div>
+
+  <div class="bar">
+    <button class="btn primary" id="pngBtn">PNG画像を作る</button>
+    <button class="btn" id="undoBtn">ひとつ戻す</button>
+    <button class="btn" id="clearBtn">すべて消す</button>
+    <div class="confirm" id="confirmBox" hidden>
+      本当に全部消しますか？
+      <button class="btn" id="clearYes">消す</button>
+      <button class="btn" id="clearNo">やめる</button>
+    </div>
+  </div>
+
+  <div class="out" id="out" hidden>
+    <p class="hint">「PNGを保存」でダウンロードできます。画像を右クリック（スマホは長押し）して保存しても大丈夫です。</p>
+    <img id="outImg" alt="印をつけた1〜100の表">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn primary" id="dlBtn">PNGを保存</button>
+      <button class="btn" id="copyBtn">画像をコピー</button>
+      <span class="toast" id="toast"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const COLORS = ["#f08a00", "#e5484d", "#2f7de1", "#8b5cf6", "#d6409f"];
+  const KEY = "numchart-v2";
+  const DEFAULT_TITLE = "1〜100 チェック表";
+  const START = [];
+
+  let marks = {};
+  let history = [];
+  let color = COLORS[0];
+  let title = DEFAULT_TITLE;
+
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (s) {
+      marks = s.marks || {}; color = COLORS.includes(s.color) ? s.color : COLORS[0];
+      title = (!s.title || s.title === "Numbers 1 - 100") ? DEFAULT_TITLE : s.title;
+    } else START.forEach(n => marks[n] = { name: "", color: COLORS[0] });
+  } catch (e) { START.forEach(n => marks[n] = { name: "", color: COLORS[0] }); }
+
+  const $ = id => document.getElementById(id);
+  const grid = $("grid");
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ marks, title, color })); } catch (e) {} };
+
+  COLORS.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "sw"; b.style.background = c; b.type = "button";
+    b.setAttribute("aria-label", "色 " + c);
+    b.onclick = () => { color = c; paintSw(); save(); };
+    $("swatches").appendChild(b);
+  });
+  function paintSw() { [...$("swatches").children].forEach((b, i) => b.setAttribute("aria-pressed", COLORS[i] === color)); }
+
+  const cells = [];
+  for (let n = 1; n <= 100; n++) {
+    const d = document.createElement("button");
+    d.className = "cell"; d.type = "button";
+    d.innerHTML = '<span class="n">' + n + '</span><span class="nm"></span>';
+    d.onclick = () => toggle(n);
+    grid.appendChild(d); cells[n] = d;
+  }
+
+  function renderCell(n, just) {
+    const d = cells[n], m = marks[n];
+    d.querySelectorAll(".ring").forEach(x => x.remove());
+    d.querySelector(".nm").textContent = "";
+    d.classList.remove("just", "on");
+    d.setAttribute("aria-label", n + (m ? " 印あり" + (m.name ? " " + m.name : "") : ""));
+    if (!m) return;
+    d.classList.add("on");
+    d.style.setProperty("--c", m.color);
+    const r = document.createElement("span"); r.className = "ring"; d.querySelector(".n").appendChild(r);
+    d.querySelector(".nm").textContent = m.name || "";
+    if (just) { void d.offsetWidth; d.classList.add("just"); }
+  }
+  function renderAll() {
+    for (let n = 1; n <= 100; n++) renderCell(n);
+    $("sheetTitle").textContent = title; $("titleInput").value = title;
+    counts(); paintSw();
+  }
+  function counts() {
+    const c = Object.keys(marks).length;
+    $("countDone").textContent = c; $("countLeft").textContent = 100 - c;
+  }
+  function toggle(n) {
+    history.push({ n, prev: marks[n] || null });
+    if (marks[n]) delete marks[n];
+    else marks[n] = { name: $("nameInput").value.trim(), color };
+    renderCell(n, true); counts(); save();
+  }
+  function markNum(n) {
+    if (!(n >= 1 && n <= 100)) return;
+    if (marks[n]) { cells[n].focus(); return; }
+    toggle(n);
+  }
+
+  $("numInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") { markNum(parseInt(e.target.value, 10)); e.target.value = ""; }
+  });
+  $("titleInput").addEventListener("input", e => { title = e.target.value; $("sheetTitle").textContent = title; save(); });
+  $("undoBtn").onclick = () => {
+    const h = history.pop(); if (!h) return;
+    if (h.prev) marks[h.n] = h.prev; else delete marks[h.n];
+    renderCell(h.n, true); counts(); save();
+  };
+  $("clearBtn").onclick = () => { $("confirmBox").hidden = false; };
+  $("clearNo").onclick = () => { $("confirmBox").hidden = true; };
+  $("clearYes").onclick = () => { marks = {}; history = []; renderAll(); save(); $("confirmBox").hidden = true; };
+
+  function rr(x, X, Y, w, h, r) {
+    x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r);
+    x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath();
+  }
+  function tint(hex, a) {
+    const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    const m = v => Math.round(255 + (v - 255) * a);
+    return `rgb(${m(r)},${m(g)},${m(b)})`;
+  }
+
+  let lastCanvas = null;
+  async function draw() {
+    try { await Promise.all([
+      document.fonts.load('500 56px "Rubik"'),
+      document.fonts.load('800 48px "M PLUS Rounded 1c"', title + "あア漢"),
+      document.fonts.load('800 24px "M PLUS Rounded 1c"', Object.values(marks).map(m => m.name).join("") + "あ")
+    ]); } catch (e) {}
+    const W = 1600, pad = 36, gap = 12, band = 110;
+    const cw = (W - pad * 2 - gap * 9) / 10, ch = cw * 1.12;
+    const H = band + pad * 2 + ch * 10 + gap * 9;
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    const x = cv.getContext("2d");
+    x.fillStyle = "#bfe9d4"; x.fillRect(0, 0, W, H);
+    x.fillStyle = "#1f5c4a"; x.fillRect(0, 0, W, band);
+    x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle";
+    x.font = '800 52px "M PLUS Rounded 1c", sans-serif'; x.fillText(title, W / 2, band / 2 + 2);
+    for (let n = 1; n <= 100; n++) {
+      const i = (n - 1) % 10, j = Math.floor((n - 1) / 10);
+      const X = pad + i * (cw + gap), Y = band + pad + j * (ch + gap);
+      const cx = X + cw / 2, cy = Y + ch / 2, m = marks[n];
+      x.fillStyle = "rgba(31,92,74,.18)"; rr(x, X, Y + 4, cw, ch, 14); x.fill();
+      x.fillStyle = m ? tint(m.color, .16) : "#fff"; rr(x, X, Y, cw, ch, 14); x.fill();
+      const ny = Y + ch * 0.37, ly = Y + ch * 0.7;
+      x.fillStyle = "#23332d"; x.font = '500 48px "Rubik", sans-serif';
+      x.fillText(String(n), cx, ny + 2);
+      x.save(); x.setLineDash([5, 5]); x.strokeStyle = "rgba(31,92,74,.28)"; x.lineWidth = 2;
+      x.beginPath(); x.moveTo(X + cw * 0.08, ly); x.lineTo(X + cw * 0.92, ly); x.stroke(); x.restore();
+      if (m) {
+        x.strokeStyle = m.color; x.lineWidth = 6;
+        x.beginPath(); x.ellipse(cx, ny, cw * 0.34, ch * 0.25, 0, 0, Math.PI * 2); x.stroke();
+        if (m.name) {
+          x.font = '800 30px "M PLUS Rounded 1c", sans-serif';
+          let name = m.name;
+          while (x.measureText(name).width > cw - 10 && name.length > 1) name = name.slice(0, -1);
+          const ty = Y + ch * 0.85;
+          x.lineWidth = 6; x.strokeStyle = tint(m.color, .16); x.strokeText(name, cx, ty);
+          x.fillStyle = m.color; x.fillText(name, cx, ty);
+        }
+      }
+    }
+    return cv;
+  }
+  $("pngBtn").onclick = async () => {
+    lastCanvas = await draw();
+    $("outImg").src = lastCanvas.toDataURL("image/png");
+    $("out").hidden = false; $("toast").textContent = "";
+    $("out").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  };
+  $("dlBtn").onclick = () => {
+    if (!lastCanvas) return;
+    lastCanvas.toBlob(b => {
+      const a = document.createElement("a");
+      const d = new Date(), p = v => String(v).padStart(2, "0");
+      a.href = URL.createObjectURL(b);
+      a.download = "number-chart_" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "_" + p(d.getHours()) + p(d.getMinutes()) + ".png";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      $("toast").textContent = "保存しました";
+    }, "image/png");
+  };
+  $("copyBtn").onclick = () => {
+    if (!lastCanvas) return;
+    try {
+      const blob = new Promise(r => lastCanvas.toBlob(r, "image/png"));
+      navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])
+        .then(() => $("toast").textContent = "コピーしました。Discordなどに貼り付けできます")
+        .catch(() => $("toast").textContent = "この環境ではコピーできません。画像を右クリック／長押しで保存してください");
+    } catch (e) { $("toast").textContent = "この環境ではコピーできません。画像を右クリック／長押しで保存してください"; }
+  };
+
+  renderAll();
+})();
+</script>
+
+</body>
+</html>
