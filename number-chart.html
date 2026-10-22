@@ -50,7 +50,6 @@ input[type=text], input[type=number] {
   border: 1px solid var(--line); background: var(--bg); color: var(--fg); width: 100%;
 }
 #nameInput { width: 150px; }
-#numInput { width: 90px; font-family: var(--f-num); font-variant-numeric: tabular-nums; }
 #titleInput { width: 200px; }
 .swatches { display: flex; gap: 6px; }
 .sw { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
@@ -112,10 +111,6 @@ button:focus-visible, input:focus-visible, .cell:focus-visible { outline: 3px so
 <div class="wrap">
   <div class="bar">
     <div class="field">
-      <label for="numInput">出た数字</label>
-      <input id="numInput" type="number" min="1" max="100" inputmode="numeric" placeholder="38">
-    </div>
-    <div class="field">
       <label for="nameInput">書き込む名前（空でもOK）</label>
       <input id="nameInput" type="text" maxlength="12" placeholder="例：うにと">
     </div>
@@ -127,7 +122,7 @@ button:focus-visible, input:focus-visible, .cell:focus-visible { outline: 3px so
       <label for="titleInput">表のタイトル</label>
       <input id="titleInput" type="text" maxlength="30" value="1〜100 チェック表">
     </div>
-    <p class="hint" style="flex-basis:100%">数字を入れて Enter か、表のマスをタップで印。印のあるマスをもう一度タップすると消えます。</p>
+    <p class="hint" style="flex-basis:100%">表のマスをタップで印。印のあるマスをもう一度タップすると消えます。</p>
   </div>
 
   <div class="sheet">
@@ -232,15 +227,7 @@ button:focus-visible, input:focus-visible, .cell:focus-visible { outline: 3px so
     else marks[n] = { name: $("nameInput").value.trim(), color };
     renderCell(n, true); counts(); save();
   }
-  function markNum(n) {
-    if (!(n >= 1 && n <= 100)) return;
-    if (marks[n]) { cells[n].focus(); return; }
-    toggle(n);
-  }
 
-  $("numInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") { markNum(parseInt(e.target.value, 10)); e.target.value = ""; }
-  });
   $("titleInput").addEventListener("input", e => { title = e.target.value; $("sheetTitle").textContent = title; save(); });
   $("undoBtn").onclick = () => {
     const h = history.pop(); if (!h) return;
